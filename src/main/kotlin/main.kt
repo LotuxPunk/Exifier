@@ -1,5 +1,6 @@
 import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.Metadata
+import com.drew.metadata.exif.ExifSubIFDDirectory
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
@@ -8,6 +9,8 @@ import java.awt.Color
 import java.awt.Font
 import java.io.File
 import java.nio.file.Path
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.imageio.ImageIO
 
 
@@ -30,18 +33,17 @@ class Exifier : CliktCommand() {
             val image = ImageIO.read(file)
 
             val metadata: Metadata = ImageMetadataReader.readMetadata(file)
-            val imageDate = metadata
-                .directories
-                .first { directory -> directory.name.equals("Exif IFD0") }
-                .tags.first { tag -> tag.tagName.equals("Date/Time") }
-                .description
+            val directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory::class.java)
+            val date: Date = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL)
+            val formatter = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.FRENCH)
+            val prettyDate = formatter.format(date)
 
-            println("Exif date : ${imageDate}")
+            println("Exif date : $prettyDate")
 
             val g2d = image.createGraphics()
             g2d.color = Color.ORANGE
             g2d.font = Font("Arial", Font.PLAIN, 200)
-            g2d.drawString(imageDate, 20, image.height - 100)
+            g2d.drawString(prettyDate, 20, image.height - 100)
             val output = File("${file.parent}${File.separatorChar}exified_${file.name}")
             ImageIO.write(image, "png", output)
 
